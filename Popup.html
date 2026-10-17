@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Popup Maker</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #f3f4f6;
+      color: #1f2937;
+      font: 16px/1.5 system-ui, sans-serif;
+    }
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(250px, 1fr) minmax(280px, 1fr);
+      gap: 24px;
+    }
+    section {
+      padding: 20px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+    }
+    label { display: block; margin: 14px 0 5px; font-weight: 600; }
+    input, textarea, button {
+      width: 100%;
+      padding: 10px;
+      font: inherit;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    button { margin-top: 14px; background: #2563eb; color: white; border: 0; cursor: pointer; }
+    #preview {
+      min-height: 220px;
+      display: grid;
+      place-items: center;
+      background: #e5e7eb;
+      border-radius: 8px;
+    }
+    .popup {
+      position: relative;
+      width: min(90%, 360px);
+      padding: 28px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 12px 40px #0003;
+      text-align: center;
+    }
+    .popup h2 { margin: 0 28px 10px 0; }
+    .popup p { margin: 0; }
+    .popup-close {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      width: auto;
+      padding: 2px 8px;
+      background: transparent;
+      color: #374151;
+      font-size: 24px;
+    }
+    pre {
+      overflow: auto;
+      max-height: 360px;
+      padding: 14px;
+      background: #111827;
+      color: #e5e7eb;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    @media (max-width: 650px) { main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <h1>Popup Maker</h1>
+
+      <label for="title">Popup title</label>
+      <input id="title" value="Hello there!">
+
+      <label for="message">Message</label>
+      <textarea id="message">Thanks for visiting. Sign up for updates!</textarea>
+
+      <label for="buttonText">Button text</label>
+      <input id="buttonText" value="Learn more">
+
+      <label for="buttonUrl">Button link</label>
+      <input id="buttonUrl" type="url" value="https://example.com">
+
+      <label for="color">Button color</label>
+      <input id="color" type="color" value="#2563eb">
+
+      <button id="update">Update preview</button>
+      <button id="copy">Copy HTML snippet</button>
+    </section>
+
+    <section>
+      <h2>Preview</h2>
+      <div id="preview"></div>
+      <h2>Generated HTML</h2>
+      <pre><code id="output"></code></pre>
+    </section>
+  </main>
+
+  <script>
+    const fields = ["title", "message", "buttonText", "buttonUrl", "color"];
+    const get = id => document.getElementById(id);
+    const escapeHtml = text => text.replace(/[&<>"']/g, char => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;",
+      '"': "&quot;", "'": "&#39;"
+    })[char]);
+
+    function update() {
+      const title = escapeHtml(get("title").value);
+      const message = escapeHtml(get("message").value);
+      const buttonText = escapeHtml(get("buttonText").value);
+      const color = get("color").value;
+      let url = get("buttonUrl").value.trim();
+
+      try {
+        const parsed = new URL(url);
+        if (!["http:", "https:"].includes(parsed.protocol)) url = "#";
+      } catch {
+        url = "#";
+      }
+
+      const safeUrl = escapeHtml(url);
+      const popupHtml = `
+<div class="popup-overlay" id="popup-overlay" role="dialog" aria-modal="true" aria-labelledby="popup-title">
+  <div class="popup-box">
+    <button class="popup-close" aria-label="Close popup" onclick="document.getElementById('popup-overlay').remove()">×</button>
+    <h2 id="popup-title">${title}</h2>
+    <p>${message}</p>
+    <a class="popup-button" href="${safeUrl}">${buttonText}</a>
+  </div>
+</div>
+<style>
+  .popup-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    display: grid; place-items: center; padding: 20px;
+    background: rgba(0,0,0,.55);
+  }
+  .popup-box {
+    position: relative; width: min(100%, 400px); padding: 32px;
+    border-radius: 12px; background: #fff; color: #1f2937;
+    font: 16px/1.5 system-ui, sans-serif; text-align: center;
+    box-shadow: 0 12px 40px rgba(0,0,0,.25);
+  }
+  .popup-box h2 { margin: 0 25px 12px 0; }
+  .popup-close {
+    position: absolute; top: 8px; right: 12px; border: 0;
+    background: transparent; font-size: 28px; cursor: pointer;
+  }
+  .popup-button {
+    display: inline-block; margin-top: 18px; padding: 10px 18px;
+    border-radius: 6px; background: ${color}; color: #fff;
+    text-decoration: none;
+  }
+</style>`;
+
+      get("preview").innerHTML = `
+        <div class="popup">
+          <button class="popup-close" aria-label="Close preview">×</button>
+          <h2>${title}</h2>
+          <p>${message}</p>
+          <a href="${safeUrl}" style="display:inline-block;margin-top:18px;padding:10px 18px;border-radius:6px;background:${color};color:white;text-decoration:none">${buttonText}</a>
+        </div>`;
+      get("output").textContent = popupHtml;
+    }
+
+    get("update").addEventListener("click", update);
+    get("copy").addEventListener("click", async () => {
+      await navigator.clipboard.writeText(get("output").textContent);
+      get("copy").textContent = "Copied!";
+      setTimeout(() => get("copy").textContent = "Copy HTML snippet", 1500);
+    });
+    fields.forEach(id => get(id).addEventListener("input", update));
+    update();
+  </script>
+</body>
+</html>
